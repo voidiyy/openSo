@@ -29,6 +29,8 @@ build: $(GO_FILES) $(UI_FILES)
 	$(GOBUILD) -o $(APP_NAME) main.go
 
 run: check-docker
+
+	templ generate
 	$(GORUN) main.go
 
 check-docker:

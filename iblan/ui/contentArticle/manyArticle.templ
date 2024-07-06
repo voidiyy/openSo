@@ -1,0 +1,29 @@
+package contentarticle
+
+import "iblan/cmd/structures"
+import "iblan/ui/mainArticle"
+
+templ ManyArticles (articles []*structures.Article) {
+    @mainarticle.ArticleBase() {
+        for _, article := range articles {
+            <div class="flex-1">
+                <div class="container mx-auto flex py-10">
+                    <div class="w-full md:w-1/6"></div>
+                    <div class="w-full md:w-3/4 p-6 bg-white rounded-lg shadow-lg">
+                        <h1 class="text-4xl font-bold mb-6 text-center text-gray-900">{article.Title}</h1>
+                        <div class="text-gray-700 leading-relaxed prose max-w-none">
+                            <p>{article.Body}</p>
+                        </div>
+                        <div class="mt-6">
+                            <p class="text-gray-600"><strong>Monero address of creator: {article.Payments}</strong> Payments</p>
+                            <p class="text-gray-600"><strong>Category: {article.Category}</strong> Category</p>
+                            <p class="text-gray-600"><strong>Link to source {article.Link}</strong> <a href="/#" class="text-blue-600 hover:underline">Link</a></p>
+                        </div>
+                        <a href="{article.Category}" class="text-blue-600 hover:underline mt-6 block text-center">Back to Articles</a>
+                        </div>
+                    <div class="w-full md:w-1/6"></div>
+                </div>
+            </div>
+        }
+    }
+}

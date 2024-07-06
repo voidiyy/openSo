@@ -44,19 +44,21 @@ func (s *APIServer) Run() {
 
 	//how i feel : userForm -> CreateUserHandler
 
-	e.GET("/", s.homeHandler)
-	e.GET("/about", s.aboutHandler)
+	e.GET("/", s.homeHandler)       //+
+	e.GET("/about", s.aboutHandler) //+
 
-	e.GET("/article/form", s.createArticleHandler)
+	e.GET("/slip/form", s.createArticleHandler) //+
 
-	e.GET("/article/create", NotFoundHandler)
-	e.POST("/article/create", s.createArticleAPI)
+	e.GET("/slip/create", NotFoundHandler)     //+
+	e.POST("/slip/create", s.createArticleAPI) //+
 
-	e.GET("/article/:category/:id", s.articleFull)
-	e.GET("/article/:category", s.articlesByCategory)
+	e.GET("/slip/:id", s.GetArticleByIDAPI)        //+
+	e.GET("/slip/:category/:id", s.articleFull)    //+
+	e.GET("/slip/:category", s.articlesByCategory) //+
 
-	e.PUT("/article/:id", s.UpdateArticleAPI)
-	e.DELETE("/article/:id", s.DeleteArticleAPI)
+	e.PUT("/slip/:title", s.UpdateArticleAPI) //+
+
+	e.DELETE("/slip/:id", s.DeleteArticleAPI) //+
 
 	//[][][][][][][][][][][][][][[][][][][]]]][]][[][][]]][[][][]][][[]
 

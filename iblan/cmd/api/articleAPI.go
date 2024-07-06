@@ -1,11 +1,11 @@
 package api
 
 import (
-	"bytes"
+	"github.com/a-h/templ"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
-	"html/template"
 	"iblan/cmd/structures"
+	contentarticle "iblan/ui/contentArticle"
 	"net/http"
 	"os"
 	"strconv"
@@ -16,10 +16,11 @@ var a = godotenv.Load()
 
 var Path = os.Getenv("TEMPLPATH")
 
+// /slip/:category/:id
 func (s *APIServer) articleFull(c echo.Context) error {
 	category := strings.Trim(c.Param("category"), " \t\n\r")
 
-	if len(category) > 8 {
+	if len(category) > 20 {
 		return c.JSON(http.StatusBadRequest, "Invalid category")
 	}
 
@@ -30,28 +31,20 @@ func (s *APIServer) articleFull(c echo.Context) error {
 
 	article, err := s.storage.GetArticleFull(category, id)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, "Article not found")
+		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	t, err := template.ParseFiles(Path + "/articles/articleUno.html")
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, "Error parsing template")
-	}
+	return Renderer(c, contentarticle.SingleArticle(article))
 
-	var buf bytes.Buffer
-	if err := t.Execute(&buf, article); err != nil {
-		return c.JSON(http.StatusInternalServerError, "Error executing template")
-	}
-
-	return c.HTML(http.StatusOK, buf.String())
 }
 
 //[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]
 
+// /slip/:category
 func (s *APIServer) articlesByCategory(c echo.Context) error {
 	category := strings.Trim(c.Param("category"), " \t\n\r")
 
-	if len(category) > 8 {
+	if len(category) > 20 {
 		return c.JSON(http.StatusBadRequest, "Invalid category")
 	}
 
@@ -60,28 +53,16 @@ func (s *APIServer) articlesByCategory(c echo.Context) error {
 		return c.JSON(505, "Error fetching articles")
 	}
 
-	if len(articles) == 0 {
-		return c.JSON(http.StatusNotFound, "No articles found")
-	}
-	var t, _ = template.ParseFiles(Path + "/articles/articlesCategory.html")
+	return Renderer(c, contentarticle.ManyArticles(articles))
+}
 
-	data := struct {
-		Category string
-		Articles []*structures.Article
-	}{
-		Category: category,
-		Articles: articles,
-	}
-
-	if err = t.Execute(c.Response().Writer, data); err != nil {
-		return c.JSON(http.StatusInternalServerError, "Error executing template")
-	}
-
-	return nil
+func Renderer(c echo.Context, component templ.Component) error {
+	return component.Render(c.Request().Context(), c.Response())
 }
 
 //[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]
 
+// /e.POST("/slip/create
 func (s *APIServer) createArticleAPI(c echo.Context) error {
 	if c.Request().Method != "POST" {
 		return c.JSON(http.StatusMethodNotAllowed, "Method not allowed")
@@ -101,48 +82,50 @@ func (s *APIServer) createArticleAPI(c echo.Context) error {
 		Link:     link,
 	}
 
+	// !!!!!!!!! add templ form
 	article := structures.NewArticle(a.Title, a.Category, a.Body, a.Payments, a.Link)
 	if err := s.storage.CreateArticle(article); err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
-	return c.Redirect(http.StatusFound, "/")
+	return Renderer(c, contentarticle.SingleArticle(article))
 }
 
+// e.GET("/slip/form
 func (s *APIServer) createArticleHandler(c echo.Context) error {
 	if c.Request().Method != "GET" {
 		return c.JSON(http.StatusMethodNotAllowed, "Method not allowed")
 	}
 
-	t, err := template.ParseFiles(Path + "/articles/articleCreate.html")
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, "Error parsing template")
-	}
-
-	err = t.Execute(c.Response(), nil)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, "Error executing template")
-	}
-	return c.JSON(http.StatusCreated, nil)
+	return Renderer(c, contentarticle.FormArticles())
 }
 
 //[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]
 
 func (s *APIServer) UpdateArticleAPI(c echo.Context) error {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, err)
-	}
+	title := strings.Trim(c.Param("title"), " \t\n\r")
 
 	var a structures.Article
 	if err := c.Bind(a); err != nil {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	error := s.storage.UpdateArticle(id, a.Title, a.Category, a.Body, a.Payments, a.Link)
+	updated, error := s.storage.UpdateArticle(title, a.Title, a.Category, a.Body, a.Payments, a.Link)
+
 	if error != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		return c.JSON(http.StatusInternalServerError, error)
 	}
-	return c.Redirect(http.StatusFound, "/")
+	newArticle, err := s.storage.GetArticleByID(updated.ID)
+	if err != nil {
+		return err
+	}
+	return Renderer(c, contentarticle.SingleArticle(newArticle))
+}
+
+func (s *APIServer) UpdateArticleHandler(c echo.Context) error {
+	if c.Request().Method != "GET" {
+		return c.JSON(http.StatusMethodNotAllowed, "Method not allowed")
+	}
+	return Renderer(c, contentarticle.FormArticles())
 }
 
 //[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]
@@ -165,9 +148,12 @@ func (s *APIServer) GetArticleByIDAPI(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err)
 	}
-	article, err := s.storage.GetArticleByID(id)
+	article, err := s.storage.GetArticleByID(uint(id))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
-	return c.JSON(http.StatusOK, article)
+
+	return Renderer(c, contentarticle.SingleArticle(article))
 }
+
+//revrite all in templ last is this |^
