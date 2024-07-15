@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Form</title>
+    <link type="image/png" sizes="32x32" rel="icon" href="/ui/assets/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .dark-bg {
+            background-color: #1a1a1a;
+        }
+        .light-bg {
+            background-color: #f5f5f5;
+        }
+        .category-link {
+            transition: background-color 0.3s;
+        }
+        .category-link:hover {
+            background-color: #2d3748;
+        }
+    </style>
+</head>
+<body class="dark-bg text-gray-900 flex flex-col min-h-screen">
+<!-- Main Navigation Menu -->
+<nav class="bg-gray-800 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+        <a href="/" class="flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white fill-current" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M3 10a7 7 0 1 1 14 0 7 7 0 0 1-14 0zm6 5a1 1 0 0 0 2 0v-3a1 1 0 0 0-2 0v3zm4-6a1 1 0 0 0-2 0v3a1 1 0 0 0 2 0v-3zm-6-3a1 1 0 0 0 2 0v3a1 1 0 0 0-2 0V6zm4 0a1 1 0 0 0-2 0v3a1 1 0 0 0 2 0V6z"/>
+            </svg>
+            <span>OpenSo</span>
+        </a>
+        <div class="flex space-x-4">
+            <a href="/" class="hover:bg-gray-600 px-3 py-2 rounded">Home</a>
+            <a href="/account" class="hover:bg-gray-600 px-3 py-2 rounded">Account</a>
+            <a href="/userForm" class="hover:bg-gray-600 px-3 py-2 rounded">User</a>
+            <a href="/memberForm" class="hover:bg-gray-600 px-3 py-2 rounded">Member</a>
+            <a href="/about" class="hover:bg-gray-600 px-3 py-2 rounded">About</a>
+            <a href="/article/create" class="hover:bg-gray-600 px-3 py-2 rounded">Create Article</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Secondary Navigation Menu -->
+<nav class="bg-gray-700 text-white p-2">
+    <div class="container mx-auto flex justify-between items-center">
+        <a href="/war" class="flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white fill-current" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M3 10a7 7 0 1 1 14 0 7 7 0 0 1-14 0zm6 5a1 1 0 0 0 2 0v-3a1 1 0 0 0-2 0v3zm4-6a1 1 0 0 0-2 0v3a1 1 0 0 0 2 0v-3zm-6-3a1 1 0 0 0 2 0v3a1 1 0 0 0-2 0V6zm4 0a1 1 0 0 0-2 0v3a1 1 0 0 0 2 0V6z" />
+            </svg>
+            <span>Categories</span>
+        </a>
+        <div class="flex space-x-4">
+            <a href="/bots" class="category-link hover:bg-gray-600 px-3 py-2 rounded">Bots</a>
+            <a href="/anon" class="category-link hover:bg-gray-600 px-3 py-2 rounded">Anonymity</a>
+            <a href="/auto" class="category-link hover:bg-gray-600 px-3 py-2 rounded">Automation</a>
+            <a href="/cyber" class="category-link hover:bg-gray-600 px-3 py-2 rounded">CyberSec</a>
+            <a href="/design" class="category-link hover:bg-gray-600 px-3 py-2 rounded">Design</a>
+            <a href="/org" class="category-link hover:bg-gray-600 px-3 py-2 rounded">Org</a>
+            <a href="/charity" class="category-link hover:bg-gray-600 px-3 py-2 rounded">Charity</a>
+            <a href="/war" class="category-link hover:bg-gray-600 px-3 py-2 rounded">War</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<div class="flex-1">
+    <div class="container mx-auto flex py-10">
+        <div class="w-full md:w-1/6"></div>
+        <div class="w-full md:w-3/4 p-6 bg-white rounded-lg shadow-lg">
+            <h1 class="text-2xl font-bold mb-4 text-center">User Profile</h1>
+            {{if .Error}}
+                <h1 class="text-2xl font-bold mb-4 text-center">{{.Error}}</h1>
+            {{else}}
+                <div class="flex flex-col items-center space-y-4">
+                    <!-- Avatar -->
+                    <div class="w-24 h-24 rounded-full overflow-hidden">
+                        <img src="/path_to_avatar.jpg" alt="User Avatar">
+                    </div>
+                    <!-- User Information -->
+                    <div class="text-lg font-semibold">Nickname: {{.Username}}</div>
+                    <div class="text-lg font-semibold">Email: {{.Email}}</div>
+                    <div class="text-lg font-semibold">Donate sum: {{.DonateSum}}</div>
+                </div>
+            {{end}}
+        </div>
+        <div class="w-full md:w-1/6"></div>
+    </div>
+</div>
+<!-- Footer -->
+<footer class="bg-gray-800 text-white p-4 mt-auto">
+    <div class="container mx-auto text-center">
+        <p>&copy; Create | Explore | Love &copy;</p>
+    </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema:
+      - "../migrations/000002_init_schema.up.sql"
+    queries:
+      - "./query"
+    gen:
+      go:
+        out: "./sqlc"
+        package: "sqlc"
+        sql_package: "pgx/v5"
+        overrides:
+          - db_type: "decimal"
+            go_type: "float64"
+
