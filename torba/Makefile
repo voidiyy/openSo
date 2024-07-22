@@ -16,17 +16,16 @@ stop-docker:
 	sudo docker stop openSo
 
 migrate-up:
-	migrate -path ./migrations -database "postgresql://postgres:opensopostgres@localhost:5432/open_base?sslmode=disable" -verbose up
+	migrate -path ./migrations -database "postgresql://root:opensopostgres@localhost:5432/open_base?sslmode=disable" -verbose up
 
 migrate-down:
-	migrate -path ./migrations -database "postgresql://postgres:opensopostgres@localhost:5432/open_base?sslmode=disable" -verbose down
+	migrate -path ./migrations -database "postgresql://root:opensopostgres@localhost:5432/open_base?sslmode=disable" -verbose down
 
 migrate-fix2:
-	migrate -path ./migrations -database "postgresql://postgres:opensopostgres@localhost:5432/open_base?sslmode=disable" force 2
+	migrate -path ./migrations -database "postgresql://root:opensopostgres@localhost:5432/open_base?sslmode=disable" force 2
 
 sqlc:
 	sqlc generate
-
 test:
 	go test -v -cover internal/sqlc/*
 

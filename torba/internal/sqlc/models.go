@@ -9,59 +9,73 @@ import (
 )
 
 type Author struct {
-	ID              int32
+	AuthorID        int64
 	NickName        string
 	Email           string
 	PasswordHash    string
 	Payments        string
-	Projects        []string
 	Bio             string
 	Link            string
 	ProfileImageUrl string
-	AdditionalInfo  []string
+	AdditionalInfo  string
 	CreatedAt       pgtype.Timestamptz
 	LastLogin       pgtype.Timestamptz
 	UpdatedAt       pgtype.Timestamptz
 }
 
 type Comment struct {
-	ID        int32
-	UserID    pgtype.Int8
-	AuthorID  pgtype.Int8
-	PostID    int64
-	CreatedAt pgtype.Timestamp
-	Message   string
+	Commentator   string
+	PostType      string
+	CommentatorID int64
+	PostID        int64
+	Comment       string
+	CommentDate   pgtype.Timestamptz
+}
+
+type OrgSupporter struct {
+	EntityType     string
+	EntityID       int64
+	OrgID          int64
+	DonationAmount pgtype.Numeric
+	DonationDate   pgtype.Timestamptz
 }
 
 type Organization struct {
-	ID             int32
+	OrgID          int32
+	AuthorID       int64
 	Category       string
 	Name           string
 	Description    string
 	Website        string
 	ContactEmail   string
 	LogoUrl        string
-	AdditionalInfo []string
-	Supporters     []int64
-	CreatedAt      pgtype.Timestamp
-	UpdatedAt      pgtype.Timestamp
+	AdditionalInfo string
+	CreatedAt      pgtype.Timestamptz
+	UpdatedAt      pgtype.Timestamptz
 }
 
 type Project struct {
-	ID          int32
-	AuthorID    int32
+	ProjectID   int32
+	AuthorID    int64
 	Title       string
 	Category    string
 	Description string
 	Link        string
-	Details     []string
+	Details     string
 	Payments    string
-	Status      string
-	Supporters  []int64
-	FundingGoal pgtype.Float8
-	FundsRaised pgtype.Float8
+	Status      bool
+	FundingGoal pgtype.Numeric
+	FundsRaised pgtype.Numeric
 	CreatedAt   pgtype.Timestamptz
 	UpdatedAt   pgtype.Timestamptz
+}
+
+type ProjectSupporter struct {
+	EntityType     string
+	EntityID       int64
+	ProjectID      int64
+	DonationAmount pgtype.Numeric
+	DonationDate   pgtype.Timestamptz
 }
 
 type TransactionsCard struct {
@@ -70,9 +84,9 @@ type TransactionsCard struct {
 	AuthorID        pgtype.Int8
 	SenderAddr      string
 	ReceiverAddr    string
-	ProjectID       pgtype.Int4
+	ProjectID       pgtype.Int8
 	Amount          pgtype.Numeric
-	TransactionDate pgtype.Timestamp
+	TransactionDate pgtype.Timestamptz
 	PaymentMethod   pgtype.Text
 }
 
@@ -84,22 +98,19 @@ type TransactionsCrypto struct {
 	ReceiverAddr    string
 	Network         string
 	Tax             pgtype.Numeric
-	ProjectID       pgtype.Int4
+	ProjectID       pgtype.Int8
 	Amount          pgtype.Numeric
-	TransactionDate pgtype.Timestamp
+	TransactionDate pgtype.Timestamptz
 	PaymentMethod   pgtype.Text
 }
 
 type User struct {
-	ID                     int32
-	Username               string
-	Email                  string
-	PasswordHash           string
-	DonationSum            float64
-	SupportedProjects      []int64
-	SupportedOrganizations []int64
-	ProfileImageUrl        string
-	CreatedAt              pgtype.Timestamptz
-	LastLogin              pgtype.Timestamptz
-	UpdatedAt              pgtype.Timestamptz
+	UserID          int64
+	Username        string
+	Email           string
+	PasswordHash    string
+	ProfileImageUrl string
+	CreatedAt       pgtype.Timestamptz
+	LastLogin       pgtype.Timestamptz
+	UpdatedAt       pgtype.Timestamptz
 }

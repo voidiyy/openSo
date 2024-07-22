@@ -9,31 +9,111 @@ import (
 	"context"
 )
 
-const deleteAuthor = `-- name: DeleteAuthor :exec
-DELETE FROM authors
-WHERE id = $1
+const createAuthor = `-- name: CreateAuthor :one
+INSERT INTO authors (
+    nick_name, email, password_hash, created_at
+) VALUES (
+             $1, $2, $3, now()
+         )
+RETURNING author_id, nick_name
 `
 
-func (q *Queries) DeleteAuthor(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deleteAuthor, id)
-	return err
+type CreateAuthorParams struct {
+	NickName     string
+	Email        string
+	PasswordHash string
 }
 
-const getAuthorByID = `-- name: GetAuthorByID :one
-SELECT id, nick_name, email, password_hash, payments, projects, bio, link, profile_image_url, additional_info, created_at, "last-login", updated_at FROM authors
-WHERE id = $1 LIMIT 1
+type CreateAuthorRow struct {
+	AuthorID int64
+	NickName string
+}
+
+func (q *Queries) CreateAuthor(ctx context.Context, arg CreateAuthorParams) (CreateAuthorRow, error) {
+	row := q.db.QueryRow(ctx, createAuthor, arg.NickName, arg.Email, arg.PasswordHash)
+	var i CreateAuthorRow
+	err := row.Scan(&i.AuthorID, &i.NickName)
+	return i, err
+}
+
+const createFullAuthor = `-- name: CreateFullAuthor :one
+insert into authors(
+    nick_name, email,
+    password_hash,
+    payments,
+    bio, link,
+    profile_image_url, additional_info, updated_at
+)
+values (
+           $1, $2, $3,$4,$5,$6,$7,$8,now()
+       )
+returning author_id, nick_name, email, password_hash, payments, bio, link, profile_image_url, additional_info, created_at, last_login, updated_at
 `
 
-func (q *Queries) GetAuthorByID(ctx context.Context, id int32) (Author, error) {
-	row := q.db.QueryRow(ctx, getAuthorByID, id)
+type CreateFullAuthorParams struct {
+	NickName        string
+	Email           string
+	PasswordHash    string
+	Payments        string
+	Bio             string
+	Link            string
+	ProfileImageUrl string
+	AdditionalInfo  string
+}
+
+func (q *Queries) CreateFullAuthor(ctx context.Context, arg CreateFullAuthorParams) (Author, error) {
+	row := q.db.QueryRow(ctx, createFullAuthor,
+		arg.NickName,
+		arg.Email,
+		arg.PasswordHash,
+		arg.Payments,
+		arg.Bio,
+		arg.Link,
+		arg.ProfileImageUrl,
+		arg.AdditionalInfo,
+	)
 	var i Author
 	err := row.Scan(
-		&i.ID,
+		&i.AuthorID,
 		&i.NickName,
 		&i.Email,
 		&i.PasswordHash,
 		&i.Payments,
-		&i.Projects,
+		&i.Bio,
+		&i.Link,
+		&i.ProfileImageUrl,
+		&i.AdditionalInfo,
+		&i.CreatedAt,
+		&i.LastLogin,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const deleteAuthor = `-- name: DeleteAuthor :exec
+DELETE FROM authors
+WHERE author_id = $1
+`
+
+func (q *Queries) DeleteAuthor(ctx context.Context, authorID int64) error {
+	_, err := q.db.Exec(ctx, deleteAuthor, authorID)
+	return err
+}
+
+const getAuthorByID = `-- name: GetAuthorByID :one
+SELECT author_id, nick_name, email, password_hash, payments, bio, link, profile_image_url, additional_info, created_at, last_login, updated_at FROM authors
+WHERE author_id = $1 LIMIT 1
+`
+
+func (q *Queries) GetAuthorByID(ctx context.Context, authorID int64) (Author, error) {
+	row := q.db.QueryRow(ctx, getAuthorByID, authorID)
+	var i Author
+	err := row.Scan(
+		&i.AuthorID,
+		&i.NickName,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Payments,
 		&i.Bio,
 		&i.Link,
 		&i.ProfileImageUrl,
@@ -46,7 +126,7 @@ func (q *Queries) GetAuthorByID(ctx context.Context, id int32) (Author, error) {
 }
 
 const getAuthorByName = `-- name: GetAuthorByName :one
-SELECT id, nick_name, email, password_hash, payments, projects, bio, link, profile_image_url, additional_info, created_at, "last-login", updated_at FROM authors
+SELECT author_id, nick_name, email, password_hash, payments, bio, link, profile_image_url, additional_info, created_at, last_login, updated_at FROM authors
 WHERE nick_name = $1 LIMIT 1
 `
 
@@ -54,12 +134,11 @@ func (q *Queries) GetAuthorByName(ctx context.Context, nickName string) (Author,
 	row := q.db.QueryRow(ctx, getAuthorByName, nickName)
 	var i Author
 	err := row.Scan(
-		&i.ID,
+		&i.AuthorID,
 		&i.NickName,
 		&i.Email,
 		&i.PasswordHash,
 		&i.Payments,
-		&i.Projects,
 		&i.Bio,
 		&i.Link,
 		&i.ProfileImageUrl,
@@ -71,9 +150,51 @@ func (q *Queries) GetAuthorByName(ctx context.Context, nickName string) (Author,
 	return i, err
 }
 
+const listAll = `-- name: ListAll :many
+SELECT a.author_id, a.nick_name,
+       COUNT(DISTINCT p.project_id) AS total_projects,
+       COUNT(DISTINCT o.org_id) AS total_organizations
+FROM authors a
+         LEFT JOIN projects p ON a.author_id = p.author_id
+         LEFT JOIN organizations o ON a.author_id = o.author_id
+GROUP BY a.author_id
+`
+
+type ListAllRow struct {
+	AuthorID           int64
+	NickName           string
+	TotalProjects      int64
+	TotalOrganizations int64
+}
+
+func (q *Queries) ListAll(ctx context.Context) ([]ListAllRow, error) {
+	rows, err := q.db.Query(ctx, listAll)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAllRow
+	for rows.Next() {
+		var i ListAllRow
+		if err := rows.Scan(
+			&i.AuthorID,
+			&i.NickName,
+			&i.TotalProjects,
+			&i.TotalOrganizations,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAuthorID = `-- name: ListAuthorID :many
-SELECT id, nick_name, email, password_hash, payments, projects, bio, link, profile_image_url, additional_info, created_at, "last-login", updated_at FROM authors
-ORDER BY id
+SELECT author_id, nick_name, email, password_hash, payments, bio, link, profile_image_url, additional_info, created_at, last_login, updated_at FROM authors
+ORDER BY author_id
 `
 
 func (q *Queries) ListAuthorID(ctx context.Context) ([]Author, error) {
@@ -86,12 +207,11 @@ func (q *Queries) ListAuthorID(ctx context.Context) ([]Author, error) {
 	for rows.Next() {
 		var i Author
 		if err := rows.Scan(
-			&i.ID,
+			&i.AuthorID,
 			&i.NickName,
 			&i.Email,
 			&i.PasswordHash,
 			&i.Payments,
-			&i.Projects,
 			&i.Bio,
 			&i.Link,
 			&i.ProfileImageUrl,
@@ -111,7 +231,7 @@ func (q *Queries) ListAuthorID(ctx context.Context) ([]Author, error) {
 }
 
 const listAuthorName = `-- name: ListAuthorName :many
-SELECT id, nick_name, email, password_hash, payments, projects, bio, link, profile_image_url, additional_info, created_at, "last-login", updated_at FROM authors
+SELECT author_id, nick_name, email, password_hash, payments, bio, link, profile_image_url, additional_info, created_at, last_login, updated_at FROM authors
 ORDER BY nick_name
 `
 
@@ -125,12 +245,11 @@ func (q *Queries) ListAuthorName(ctx context.Context) ([]Author, error) {
 	for rows.Next() {
 		var i Author
 		if err := rows.Scan(
-			&i.ID,
+			&i.AuthorID,
 			&i.NickName,
 			&i.Email,
 			&i.PasswordHash,
 			&i.Payments,
-			&i.Projects,
 			&i.Bio,
 			&i.Link,
 			&i.ProfileImageUrl,
@@ -149,120 +268,121 @@ func (q *Queries) ListAuthorName(ctx context.Context) ([]Author, error) {
 	return items, nil
 }
 
-const signAuthor = `-- name: SignAuthor :one
-INSERT INTO authors (
-    nick_name, email, password_hash
-) VALUES (
-             $1, $2, $3
-         )
-RETURNING id, nick_name
+const listOrg = `-- name: ListOrg :many
+SELECT o.org_id, o.name, o.category, COUNT(os.entity_id) AS supporter_count, SUM(os.donation_amount) AS total_donations
+FROM organizations o
+         LEFT JOIN org_supporters os ON o.org_id = os.org_id
+WHERE o.author_id = $1
+GROUP BY o.org_id
 `
 
-type SignAuthorParams struct {
-	NickName     string
-	Email        string
-	PasswordHash string
+type ListOrgRow struct {
+	OrgID          int32
+	Name           string
+	Category       string
+	SupporterCount int64
+	TotalDonations int64
 }
 
-type SignAuthorRow struct {
-	ID       int32
-	NickName string
+func (q *Queries) ListOrg(ctx context.Context, authorID int64) ([]ListOrgRow, error) {
+	rows, err := q.db.Query(ctx, listOrg, authorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListOrgRow
+	for rows.Next() {
+		var i ListOrgRow
+		if err := rows.Scan(
+			&i.OrgID,
+			&i.Name,
+			&i.Category,
+			&i.SupporterCount,
+			&i.TotalDonations,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-func (q *Queries) SignAuthor(ctx context.Context, arg SignAuthorParams) (SignAuthorRow, error) {
-	row := q.db.QueryRow(ctx, signAuthor, arg.NickName, arg.Email, arg.PasswordHash)
-	var i SignAuthorRow
-	err := row.Scan(&i.ID, &i.NickName)
-	return i, err
-}
-
-const signFullAuthor = `-- name: SignFullAuthor :one
-insert into authors(
-    nick_name, email,
-    password_hash,
-    payments, projects,
-    bio, link,
-    profile_image_url, additional_info
-)
-values (
-           $1, $2, $3,$4,$5,$6,$7,$8,$9
-       )
-returning id, nick_name, email, password_hash, payments, projects, bio, link, profile_image_url, additional_info, created_at, "last-login", updated_at
+const listProjects = `-- name: ListProjects :many
+SELECT p.project_id, p.title, p.category, COUNT(ps.entity_id) AS supporter_count, SUM(ps.donation_amount) AS total_donations
+FROM projects p
+         LEFT JOIN project_supporters ps ON p.project_id = ps.project_id
+WHERE p.author_id = $1
+GROUP BY p.project_id
 `
 
-type SignFullAuthorParams struct {
-	NickName        string
-	Email           string
-	PasswordHash    string
-	Payments        string
-	Projects        []string
-	Bio             string
-	Link            string
-	ProfileImageUrl string
-	AdditionalInfo  []string
+type ListProjectsRow struct {
+	ProjectID      int32
+	Title          string
+	Category       string
+	SupporterCount int64
+	TotalDonations int64
 }
 
-func (q *Queries) SignFullAuthor(ctx context.Context, arg SignFullAuthorParams) (Author, error) {
-	row := q.db.QueryRow(ctx, signFullAuthor,
-		arg.NickName,
-		arg.Email,
-		arg.PasswordHash,
-		arg.Payments,
-		arg.Projects,
-		arg.Bio,
-		arg.Link,
-		arg.ProfileImageUrl,
-		arg.AdditionalInfo,
-	)
-	var i Author
-	err := row.Scan(
-		&i.ID,
-		&i.NickName,
-		&i.Email,
-		&i.PasswordHash,
-		&i.Payments,
-		&i.Projects,
-		&i.Bio,
-		&i.Link,
-		&i.ProfileImageUrl,
-		&i.AdditionalInfo,
-		&i.CreatedAt,
-		&i.LastLogin,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) ListProjects(ctx context.Context, authorID int64) ([]ListProjectsRow, error) {
+	rows, err := q.db.Query(ctx, listProjects, authorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListProjectsRow
+	for rows.Next() {
+		var i ListProjectsRow
+		if err := rows.Scan(
+			&i.ProjectID,
+			&i.Title,
+			&i.Category,
+			&i.SupporterCount,
+			&i.TotalDonations,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateAuthor = `-- name: UpdateAuthor :one
 UPDATE authors
 set nick_name = $2,
     email = $3,
-    password_hash = $4
-WHERE id = $1
-returning id,nick_name
+    password_hash = $4,
+    updated_at = now()
+WHERE author_id = $1
+returning author_id,nick_name
 `
 
 type UpdateAuthorParams struct {
-	ID           int32
+	AuthorID     int64
 	NickName     string
 	Email        string
 	PasswordHash string
 }
 
 type UpdateAuthorRow struct {
-	ID       int32
+	AuthorID int64
 	NickName string
 }
 
 func (q *Queries) UpdateAuthor(ctx context.Context, arg UpdateAuthorParams) (UpdateAuthorRow, error) {
 	row := q.db.QueryRow(ctx, updateAuthor,
-		arg.ID,
+		arg.AuthorID,
 		arg.NickName,
 		arg.Email,
 		arg.PasswordHash,
 	)
 	var i UpdateAuthorRow
-	err := row.Scan(&i.ID, &i.NickName)
+	err := row.Scan(&i.AuthorID, &i.NickName)
 	return i, err
 }
 
@@ -272,47 +392,52 @@ set nick_name = $2,
     email = $3,
     password_hash = $4,
     payments = $5,
-    projects = $6,
-    bio = $7,
-    link = $8,
-    profile_image_url = $9,
-    additional_info = $10
-WHERE id = $1
-returning id,nick_name
+    bio = $6,
+    link = $7,
+    profile_image_url = $8,
+    additional_info = $9
+WHERE author_id = $1
+returning author_id, nick_name, email, password_hash, payments, bio, link, profile_image_url, additional_info, created_at, last_login, updated_at
 `
 
 type UpdateAuthorFullParams struct {
-	ID              int32
+	AuthorID        int64
 	NickName        string
 	Email           string
 	PasswordHash    string
 	Payments        string
-	Projects        []string
 	Bio             string
 	Link            string
 	ProfileImageUrl string
-	AdditionalInfo  []string
+	AdditionalInfo  string
 }
 
-type UpdateAuthorFullRow struct {
-	ID       int32
-	NickName string
-}
-
-func (q *Queries) UpdateAuthorFull(ctx context.Context, arg UpdateAuthorFullParams) (UpdateAuthorFullRow, error) {
+func (q *Queries) UpdateAuthorFull(ctx context.Context, arg UpdateAuthorFullParams) (Author, error) {
 	row := q.db.QueryRow(ctx, updateAuthorFull,
-		arg.ID,
+		arg.AuthorID,
 		arg.NickName,
 		arg.Email,
 		arg.PasswordHash,
 		arg.Payments,
-		arg.Projects,
 		arg.Bio,
 		arg.Link,
 		arg.ProfileImageUrl,
 		arg.AdditionalInfo,
 	)
-	var i UpdateAuthorFullRow
-	err := row.Scan(&i.ID, &i.NickName)
+	var i Author
+	err := row.Scan(
+		&i.AuthorID,
+		&i.NickName,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Payments,
+		&i.Bio,
+		&i.Link,
+		&i.ProfileImageUrl,
+		&i.AdditionalInfo,
+		&i.CreatedAt,
+		&i.LastLogin,
+		&i.UpdatedAt,
+	)
 	return i, err
 }

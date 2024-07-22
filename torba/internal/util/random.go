@@ -16,6 +16,10 @@ func RandomInt(min, max int) int {
 	return min + rand.Intn(max-min+1)
 }
 
+func RandomInt64(max int64) int64 {
+	return max - rand.Int63()
+}
+
 func RandomFloat(min, max float64) float64 {
 	return min + rand.Float64()*(max-min+1)
 }

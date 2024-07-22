@@ -1,0 +1,50 @@
+
+00:30 21 jul
+made user validation, end with user db and user api(for now)
+
+:
+make author validation and API
+end with DB functions for projects and organizations
+also made validation for them
+
+16:37 21 jul
+
+
+for now:
+user db +
+author db +
+project db +
+
+user API +
+author API +
+
+todo:
+project API +
+opg db +
+org API
+
+
+LAST:
+make validator for organizations
+make API org
+
+make a lot of templates((
+
+
+23 Jul:
+
+
+!!!
+unified handlers for GET POST
+client and server errors handling
+{
+all this must set headers(check OWASP)
+statuses for http errors and bla bla bla
+}
+
+next:
+tokens, auth and ...
+
+IMPORTANT: need midleware like(only logined authors can create and manahe orgs and projs)
+            need midleware for admin and admin page
+            need stats pages with a lot of stats

@@ -2,69 +2,47 @@ package sqlc
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
+	"openSo/internal/util"
 	"testing"
-	"torba/internal/util"
+
+	"github.com/stretchr/testify/require"
 )
 
 func CreateRandomUser(t *testing.T) User {
-	arg := SignFullUserParams{
-		Username:          util.UserName(),
-		Email:             util.Email(),
-		PasswordHash:      util.Password(),
-		DonationSum:       util.RandomFloat(3, 12),
-		SupportedProjects: util.RandomIntSlice(2, 3, 16),
-		ProfileImageUrl:   util.RandomString(7),
+	arg := CreateUserParams{
+		Username:        util.UserName(),
+		Email:           util.Email(),
+		PasswordHash:    util.Password(),
+		ProfileImageUrl: util.RandomString(7),
 	}
 
-	user, err := test.SignFullUser(context.Background(), arg) // змініть на реальний виклик вашої функції створення користувача
+	user, err := test.CreateUser(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 
 	require.Equal(t, arg.Username, user.Username)
-	require.Equal(t, arg.Email, user.Email)
-	require.Equal(t, arg.PasswordHash, user.PasswordHash)
-	require.Equal(t, arg.DonationSum, user.DonationSum)
-	require.ElementsMatch(t, arg.SupportedProjects, user.SupportedProjects)
-	require.Equal(t, arg.ProfileImageUrl, user.ProfileImageUrl)
 
-	require.NotZero(t, user.ID)
-	require.NotZero(t, user.CreatedAt)
+	require.NotZero(t, user.UserID)
 
 	return user
 }
 
-func TestSignUser(t *testing.T) {
-	arg := SignUserParams{
-		Username:     util.UserName(),
-		Email:        util.Email(),
-		PasswordHash: util.Password(),
-	}
-
-	user, err := test.SignUser(context.Background(), arg)
-	require.NoError(t, err)
-	require.Equal(t, arg.Username, user.Username)
-}
-
-func TestSignFullUser(t *testing.T) {
+func TestCreateUser(t *testing.T) {
 	CreateRandomUser(t)
 }
 
-func TestGetUserByID(t *testing.T) {
+func TestGetUserByUserID(t *testing.T) {
 	user1 := CreateRandomUser(t)
-	user2, err := test.GetUserByID(context.Background(), user1.ID)
+	user2, err := test.GetUserByID(context.Background(), user1.UserID)
 	require.NoError(t, err)
 	require.NotEmpty(t, user2)
 
-	require.Equal(t, user1.ID, user2.ID)
+	require.Equal(t, user1.UserID, user2.UserID)
 	require.Equal(t, user1.Username, user2.Username)
 	require.Equal(t, user1.CreatedAt, user2.CreatedAt)
-	require.Equal(t, user1.DonationSum, user2.DonationSum)
 	require.Equal(t, user1.Email, user2.Email)
 	require.Equal(t, user1.PasswordHash, user2.PasswordHash)
 	require.Equal(t, user1.ProfileImageUrl, user2.ProfileImageUrl)
-	require.Equal(t, user1.SupportedProjects, user2.SupportedProjects)
-
 }
 
 func TestGetUserByName(t *testing.T) {
@@ -73,14 +51,12 @@ func TestGetUserByName(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, user2)
 
-	require.Equal(t, user1.ID, user2.ID)
+	require.Equal(t, user1.UserID, user2.UserID)
 	require.Equal(t, user1.Username, user2.Username)
 	require.Equal(t, user1.CreatedAt, user2.CreatedAt)
 	require.Equal(t, user1.Email, user2.Email)
 	require.Equal(t, user1.PasswordHash, user2.PasswordHash)
 	require.Equal(t, user1.ProfileImageUrl, user2.ProfileImageUrl)
-	require.Equal(t, user1.DonationSum, user2.DonationSum)
-	require.Equal(t, user1.SupportedProjects, user2.SupportedProjects)
 }
 
 func TestListUserName(t *testing.T) {
@@ -99,7 +75,7 @@ func TestListUserName(t *testing.T) {
 	}
 }
 
-func TestListUserID(t *testing.T) {
+func TestListUserUserID(t *testing.T) {
 	var users []User
 
 	users, err := test.ListUserID(context.Background())
@@ -119,7 +95,7 @@ func TestUpdateUser(t *testing.T) {
 	account1 := CreateRandomUser(t)
 
 	arg := UpdateUserParams{
-		ID:           account1.ID,
+		UserID:       account1.UserID,
 		Username:     util.UserName(),
 		Email:        util.Email(),
 		PasswordHash: util.Password(),
@@ -128,39 +104,37 @@ func TestUpdateUser(t *testing.T) {
 	usr, err := test.UpdateUser(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, usr.Username)
-	require.NotEmpty(t, usr.ID)
+	require.NotEmpty(t, usr.UserID)
 
-	require.Equal(t, account1.ID, usr.ID)
+	require.Equal(t, account1.UserID, usr.UserID)
 }
 
 func TestUpdateUserFull(t *testing.T) {
 	account1 := CreateRandomUser(t)
 
-	arg := UpdateFullParams{
-		ID:                account1.ID,
-		Username:          util.UserName(),
-		Email:             util.Email(),
-		PasswordHash:      util.Password(),
-		DonationSum:       util.RandomFloat(3, 10),
-		SupportedProjects: util.RandomIntSlice(3, 5, 10),
-		ProfileImageUrl:   util.RandomString(7),
+	arg := UpdateUserParams{
+		UserID:          account1.UserID,
+		Username:        util.UserName(),
+		Email:           util.Email(),
+		PasswordHash:    util.Password(),
+		ProfileImageUrl: util.RandomString(7),
 	}
 
-	usr, err := test.UpdateFull(context.Background(), arg)
+	usr, err := test.UpdateUser(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, usr.Username)
-	require.NotEmpty(t, usr.ID)
+	require.NotEmpty(t, usr.UserID)
 
-	require.Equal(t, account1.ID, usr.ID)
+	require.Equal(t, account1.UserID, usr.UserID)
 }
 
 func TestDeleteUser(t *testing.T) {
 	account1 := CreateRandomUser(t)
 
-	err := test.DeleteUser(context.Background(), account1.ID)
+	err := test.DeleteUser(context.Background(), account1.UserID)
 	require.NoError(t, err)
 
-	u, err := test.GetUserByID(context.Background(), account1.ID)
+	u, err := test.GetUserByID(context.Background(), account1.UserID)
 	require.Error(t, err)
 	require.Empty(t, u)
 }

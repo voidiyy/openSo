@@ -1,0 +1,73 @@
+{{define "userProfile"}}
+
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Registration Form</title>
+        <link type="image/png" sizes="32x32" rel="icon" href="/ui/assets/favicon.ico">
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    </head>
+    <body class="flex flex-col min-h-screen">
+
+    <nav class="bg-gray-800 text-white p-4">
+        {{template "mainNav" .}}
+    </nav>
+
+    <nav class="bg-gray-700 text-white p-2">
+        {{template "nav" .}}
+    </nav>
+
+    <main class="flex-1">
+        <div class="flex-1">
+            <div class="container mx-auto py-10">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h1 class="text-3xl font-bold mb-4 text-center">{{.Username}} profile</h1>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="userId" class="block text-gray-600">User ID:</label>
+                            <p id="userId" class="border border-gray-300 px-4 py-2 rounded-md bg-gray-100">{{ .UserID }}</p>
+                        </div>
+                        <div>
+                            <label for="username" class="block text-gray-600">Username:</label>
+                            <p id="username" class="border border-gray-300 px-4 py-2 rounded-md bg-gray-100">{{ .Username }}</p>
+                        </div>
+                        <div>
+                            <label for="email" class="block text-gray-600">Email:</label>
+                            <p id="email" class="border border-gray-300 px-4 py-2 rounded-md bg-gray-100">{{ .Email }}</p>
+                        </div>
+                        <div>
+                            <label for="createdAt" class="block text-gray-600">Created At:</label>
+                            <p id="createdAt" class="border border-gray-300 px-4 py-2 rounded-md bg-gray-100">{{ .CreatedAt }}</p>
+                        </div>
+                        <div>
+                            <label for="lastLogin" class="block text-gray-600">Last Login:</label>
+                            <p id="lastLogin" class="border border-gray-300 px-4 py-2 rounded-md bg-gray-100">{{ .LastLogin }}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center mt-6 space-x-4">
+                        <a href="/user/profile/{{ .UserID }}/update"
+                           class="bg-blue-500 text-white px-6 py-3 rounded-md hover:bg-blue-600">Update
+                            Profile</a>
+                        <form action="/user/profile/{{ .UserID }}/delete" method="POST"
+                              onsubmit="return confirm('Are you sure you want to delete your profile?');">
+                            <input type="hidden" name="_method" value="DELETE">
+                            <button type="submit"
+                                    class="bg-red-500 text-white px-6 py-3 rounded-md hover:bg-red-600">Delete
+                                Profile</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white p-4">
+        {{template "footer" .}}
+    </footer>
+
+    </body>
+    </html>
+{{end}}

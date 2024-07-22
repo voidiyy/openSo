@@ -2,27 +2,11 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 )
 
-func (app *application) userForm(w http.ResponseWriter, r *http.Request) error {
-	if r.URL.Path != "/user/create" {
-		http.NotFound(w, r)
-		app.errorL.Printf("invalid path: %s", r.URL.Path)
-		return fmt.Errorf("invalid path")
-	}
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		app.errorL.Printf("Method not allowed: %s", r.Method)
-		return fmt.Errorf("method not allowed")
-	}
-
-	app.render(w, r, "../../ui/user.html", nil)
-	return nil
-}
-
-func (app *application) about(w http.ResponseWriter, r *http.Request) error {
+func (app *Application) about(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != "GET" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return fmt.Errorf("method not allowed")
@@ -33,12 +17,26 @@ func (app *application) about(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	fmt.Fprintln(w, "AboutPage!")
+	tmpl, err := template.ParseFiles("../../ui/index/about.gohtml")
+	if err != nil {
+		http.NotFound(w, r)
+		app.errorL.Printf("template parsing error: %v", err)
+		return fmt.Errorf("template parsing error")
+	}
+
+	err = tmpl.Execute(w, nil)
+	if err != nil {
+		http.NotFound(w, r)
+		app.errorL.Printf("template executing error: %v", err)
+		return fmt.Errorf("template executing error")
+	}
+
 	return nil
 }
 
-func (app *application) contact(w http.ResponseWriter, r *http.Request) error {
+func (app *Application) contact(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != "GET" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return fmt.Errorf("method not allowed")
@@ -47,13 +45,28 @@ func (app *application) contact(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusNotFound)
 		return fmt.Errorf("page not found")
 	}
+
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "ContactPage!")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	templ, err := template.ParseFiles("../../ui/index/contact.gohtml")
+	if err != nil {
+		http.NotFound(w, r)
+		app.errorL.Printf("template parsing error: %v", err)
+		return fmt.Errorf("template parsing error")
+	}
+
+	err = templ.Execute(w, nil)
+	if err != nil {
+		http.NotFound(w, r)
+		app.errorL.Printf("template executing error: %v", err)
+		return fmt.Errorf("template executing error")
+	}
 
 	return nil
 }
 
-func (app *application) home(w http.ResponseWriter, r *http.Request) error {
+func (app *Application) home(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != "GET" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return fmt.Errorf("method not allowed")
@@ -62,8 +75,22 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusNotFound)
 		return fmt.Errorf("page not found")
 	}
+
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "Home Page!")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	templ, err := template.ParseFiles("../../ui/index/home.gohtml")
+	if err != nil {
+		http.NotFound(w, r)
+		app.errorL.Printf("template parsing error: %v", err)
+		return fmt.Errorf("template parsing error")
+	}
+	err = templ.Execute(w, nil)
+	if err != nil {
+		http.NotFound(w, r)
+		app.errorL.Printf("template executing error: %v", err)
+		return fmt.Errorf("template executing error")
+	}
 
 	return nil
 }

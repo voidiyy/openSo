@@ -9,32 +9,66 @@ import (
 	"context"
 )
 
-const deleteUser = `-- name: DeleteUser :exec
-DELETE FROM users
-WHERE id = $1
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (
+    username, email, password_hash, profile_image_url, created_at
+) VALUES (
+             $1, $2, $3, $4, now()
+         )
+RETURNING user_id, username, email, password_hash, profile_image_url, created_at, last_login, updated_at
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deleteUser, id)
+type CreateUserParams struct {
+	Username        string
+	Email           string
+	PasswordHash    string
+	ProfileImageUrl string
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser,
+		arg.Username,
+		arg.Email,
+		arg.PasswordHash,
+		arg.ProfileImageUrl,
+	)
+	var i User
+	err := row.Scan(
+		&i.UserID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.ProfileImageUrl,
+		&i.CreatedAt,
+		&i.LastLogin,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const deleteUser = `-- name: DeleteUser :exec
+DELETE FROM users
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, userID int64) error {
+	_, err := q.db.Exec(ctx, deleteUser, userID)
 	return err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, email, password_hash, donation_sum, supported_projects, supported_organizations, profile_image_url, created_at, last_login, updated_at FROM users
-WHERE id = $1 LIMIT 1
+SELECT user_id, username, email, password_hash, profile_image_url, created_at, last_login, updated_at FROM users
+WHERE user_id = $1 LIMIT 1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id int32) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByID, id)
+func (q *Queries) GetUserByID(ctx context.Context, userID int64) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByID, userID)
 	var i User
 	err := row.Scan(
-		&i.ID,
+		&i.UserID,
 		&i.Username,
 		&i.Email,
 		&i.PasswordHash,
-		&i.DonationSum,
-		&i.SupportedProjects,
-		&i.SupportedOrganizations,
 		&i.ProfileImageUrl,
 		&i.CreatedAt,
 		&i.LastLogin,
@@ -44,7 +78,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id int32) (User, error) {
 }
 
 const getUserByName = `-- name: GetUserByName :one
-SELECT id, username, email, password_hash, donation_sum, supported_projects, supported_organizations, profile_image_url, created_at, last_login, updated_at FROM users
+SELECT user_id, username, email, password_hash, profile_image_url, created_at, last_login, updated_at FROM users
 WHERE username = $1 LIMIT 1
 `
 
@@ -52,13 +86,10 @@ func (q *Queries) GetUserByName(ctx context.Context, username string) (User, err
 	row := q.db.QueryRow(ctx, getUserByName, username)
 	var i User
 	err := row.Scan(
-		&i.ID,
+		&i.UserID,
 		&i.Username,
 		&i.Email,
 		&i.PasswordHash,
-		&i.DonationSum,
-		&i.SupportedProjects,
-		&i.SupportedOrganizations,
 		&i.ProfileImageUrl,
 		&i.CreatedAt,
 		&i.LastLogin,
@@ -68,8 +99,8 @@ func (q *Queries) GetUserByName(ctx context.Context, username string) (User, err
 }
 
 const listUserID = `-- name: ListUserID :many
-SELECT id, username, email, password_hash, donation_sum, supported_projects, supported_organizations, profile_image_url, created_at, last_login, updated_at FROM users
-ORDER BY id
+SELECT user_id, username, email, password_hash, profile_image_url, created_at, last_login, updated_at FROM users
+ORDER BY user_id
 `
 
 func (q *Queries) ListUserID(ctx context.Context) ([]User, error) {
@@ -82,13 +113,10 @@ func (q *Queries) ListUserID(ctx context.Context) ([]User, error) {
 	for rows.Next() {
 		var i User
 		if err := rows.Scan(
-			&i.ID,
+			&i.UserID,
 			&i.Username,
 			&i.Email,
 			&i.PasswordHash,
-			&i.DonationSum,
-			&i.SupportedProjects,
-			&i.SupportedOrganizations,
 			&i.ProfileImageUrl,
 			&i.CreatedAt,
 			&i.LastLogin,
@@ -105,7 +133,7 @@ func (q *Queries) ListUserID(ctx context.Context) ([]User, error) {
 }
 
 const listUserName = `-- name: ListUserName :many
-SELECT id, username, email, password_hash, donation_sum, supported_projects, supported_organizations, profile_image_url, created_at, last_login, updated_at FROM users
+SELECT user_id, username, email, password_hash, profile_image_url, created_at, last_login, updated_at FROM users
 ORDER BY username
 `
 
@@ -119,13 +147,10 @@ func (q *Queries) ListUserName(ctx context.Context) ([]User, error) {
 	for rows.Next() {
 		var i User
 		if err := rows.Scan(
-			&i.ID,
+			&i.UserID,
 			&i.Username,
 			&i.Email,
 			&i.PasswordHash,
-			&i.DonationSum,
-			&i.SupportedProjects,
-			&i.SupportedOrganizations,
 			&i.ProfileImageUrl,
 			&i.CreatedAt,
 			&i.LastLogin,
@@ -141,151 +166,43 @@ func (q *Queries) ListUserName(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
-const signFullUser = `-- name: SignFullUser :one
-insert into users(
-    username, email, password_hash,
-    donation_sum, supported_projects,
-    profile_image_url
-)
-values (
-        $1, $2, $3,$4,$5,$6
-)
-returning id, username, email, password_hash, donation_sum, supported_projects, supported_organizations, profile_image_url, created_at, last_login, updated_at
+const updateUser = `-- name: UpdateUser :one
+UPDATE users
+set username = $2,
+    email = $3,
+    password_hash = $4,
+    profile_image_url = $5,
+    updated_at = now()
+WHERE user_id = $1
+returning user_id, username, email, password_hash, profile_image_url, created_at, last_login, updated_at
 `
 
-type SignFullUserParams struct {
-	Username          string
-	Email             string
-	PasswordHash      string
-	DonationSum       float64
-	SupportedProjects []int64
-	ProfileImageUrl   string
+type UpdateUserParams struct {
+	UserID          int64
+	Username        string
+	Email           string
+	PasswordHash    string
+	ProfileImageUrl string
 }
 
-func (q *Queries) SignFullUser(ctx context.Context, arg SignFullUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, signFullUser,
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUser,
+		arg.UserID,
 		arg.Username,
 		arg.Email,
 		arg.PasswordHash,
-		arg.DonationSum,
-		arg.SupportedProjects,
 		arg.ProfileImageUrl,
 	)
 	var i User
 	err := row.Scan(
-		&i.ID,
+		&i.UserID,
 		&i.Username,
 		&i.Email,
 		&i.PasswordHash,
-		&i.DonationSum,
-		&i.SupportedProjects,
-		&i.SupportedOrganizations,
 		&i.ProfileImageUrl,
 		&i.CreatedAt,
 		&i.LastLogin,
 		&i.UpdatedAt,
 	)
-	return i, err
-}
-
-const signUser = `-- name: SignUser :one
-INSERT INTO users (
-    username, email, password_hash
-) VALUES (
-             $1, $2, $3
-         )
-RETURNING id,username
-`
-
-type SignUserParams struct {
-	Username     string
-	Email        string
-	PasswordHash string
-}
-
-type SignUserRow struct {
-	ID       int32
-	Username string
-}
-
-func (q *Queries) SignUser(ctx context.Context, arg SignUserParams) (SignUserRow, error) {
-	row := q.db.QueryRow(ctx, signUser, arg.Username, arg.Email, arg.PasswordHash)
-	var i SignUserRow
-	err := row.Scan(&i.ID, &i.Username)
-	return i, err
-}
-
-const updateFull = `-- name: UpdateFull :one
-UPDATE users
-set username = $2,
-    email = $3,
-    password_hash = $4,
-    donation_sum = $5,
-    supported_projects = $6,
-    profile_image_url = $7
-WHERE id = $1
-returning id,username
-`
-
-type UpdateFullParams struct {
-	ID                int32
-	Username          string
-	Email             string
-	PasswordHash      string
-	DonationSum       float64
-	SupportedProjects []int64
-	ProfileImageUrl   string
-}
-
-type UpdateFullRow struct {
-	ID       int32
-	Username string
-}
-
-func (q *Queries) UpdateFull(ctx context.Context, arg UpdateFullParams) (UpdateFullRow, error) {
-	row := q.db.QueryRow(ctx, updateFull,
-		arg.ID,
-		arg.Username,
-		arg.Email,
-		arg.PasswordHash,
-		arg.DonationSum,
-		arg.SupportedProjects,
-		arg.ProfileImageUrl,
-	)
-	var i UpdateFullRow
-	err := row.Scan(&i.ID, &i.Username)
-	return i, err
-}
-
-const updateUser = `-- name: UpdateUser :one
-UPDATE users
-set username = $2,
-    email = $3,
-    password_hash = $4
-WHERE id = $1
-returning id,username
-`
-
-type UpdateUserParams struct {
-	ID           int32
-	Username     string
-	Email        string
-	PasswordHash string
-}
-
-type UpdateUserRow struct {
-	ID       int32
-	Username string
-}
-
-func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error) {
-	row := q.db.QueryRow(ctx, updateUser,
-		arg.ID,
-		arg.Username,
-		arg.Email,
-		arg.PasswordHash,
-	)
-	var i UpdateUserRow
-	err := row.Scan(&i.ID, &i.Username)
 	return i, err
 }

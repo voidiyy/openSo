@@ -2,25 +2,25 @@ package sqlc
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
+	"openSo/internal/util"
 	"testing"
-	"torba/internal/util"
+
+	"github.com/stretchr/testify/require"
 )
 
 func CreateRandomAuthor(t *testing.T) Author {
-	arg := SignFullAuthorParams{
+	arg := CreateFullAuthorParams{
 		NickName:        util.RandomString(8),
 		Email:           util.RandomString(8) + "@gmail.com",
 		PasswordHash:    util.RandomString(8),
 		Payments:        util.RandomString(8),
-		Projects:        util.RandomStringSlice(4),
 		Bio:             util.RandomString(12),
 		Link:            util.RandomString(5),
 		ProfileImageUrl: util.RandomString(5),
-		AdditionalInfo:  util.RandomStringSlice(3),
+		AdditionalInfo:  util.RandomString(3),
 	}
 
-	author, err := test.SignFullAuthor(context.Background(), arg)
+	author, err := test.CreateFullAuthor(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, author)
 
@@ -28,28 +28,27 @@ func CreateRandomAuthor(t *testing.T) Author {
 	require.Equal(t, arg.Email, author.Email)
 	require.Equal(t, arg.PasswordHash, author.PasswordHash)
 	require.Equal(t, arg.Payments, author.Payments)
-	require.ElementsMatch(t, arg.Projects, author.Projects)
 	require.Equal(t, arg.Bio, author.Bio)
 	require.Equal(t, arg.Link, author.Link)
 	require.Equal(t, arg.ProfileImageUrl, author.ProfileImageUrl)
-	require.ElementsMatch(t, arg.AdditionalInfo, author.AdditionalInfo)
+	require.Equal(t, arg.AdditionalInfo, author.AdditionalInfo)
 
 	return author
 }
 
 func TestSignAuthor(t *testing.T) {
-	arg := SignAuthorParams{
+	arg := CreateAuthorParams{
 		NickName:     util.RandomString(12),
-		Email:        util.RandomString(12),
+		Email:        util.RandomString(12) + "@gmail.com",
 		PasswordHash: util.RandomString(12),
 	}
 
-	author, err := test.SignAuthor(context.Background(), arg)
+	author, err := test.CreateAuthor(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, author)
 
 	require.Equal(t, arg.NickName, author.NickName)
-	require.NotEmpty(t, author.ID)
+	require.NotEmpty(t, author.AuthorID)
 }
 
 func TestSignFullAuthor(t *testing.T) {
@@ -59,49 +58,47 @@ func TestSignFullAuthor(t *testing.T) {
 func TestDeleteAuthor(t *testing.T) {
 	author := CreateRandomAuthor(t)
 
-	err := test.DeleteAuthor(context.Background(), author.ID)
+	err := test.DeleteAuthor(context.Background(), author.AuthorID)
 	require.NoError(t, err)
 }
 
-func TestGetAuthorByID(t *testing.T) {
+func TestGetAuthorByAuthorID(t *testing.T) {
 	author := CreateRandomAuthor(t)
 
-	id, err := test.GetAuthorByID(context.Background(), author.ID)
+	AuthorID, err := test.GetAuthorByID(context.Background(), author.AuthorID)
 	require.NoError(t, err)
 
-	require.NotEmpty(t, id)
-	require.Equal(t, author.NickName, id.NickName)
-	require.Equal(t, author.Email, id.Email)
-	require.Equal(t, author.PasswordHash, id.PasswordHash)
-	require.Equal(t, author.Payments, id.Payments)
-	require.ElementsMatch(t, author.Projects, id.Projects)
-	require.Equal(t, author.Bio, id.Bio)
-	require.Equal(t, author.Link, id.Link)
-	require.Equal(t, author.ProfileImageUrl, id.ProfileImageUrl)
-	require.ElementsMatch(t, author.AdditionalInfo, id.AdditionalInfo)
+	require.NotEmpty(t, AuthorID)
+	require.Equal(t, author.NickName, AuthorID.NickName)
+	require.Equal(t, author.Email, AuthorID.Email)
+	require.Equal(t, author.PasswordHash, AuthorID.PasswordHash)
+	require.Equal(t, author.Payments, AuthorID.Payments)
+	require.Equal(t, author.Bio, AuthorID.Bio)
+	require.Equal(t, author.Link, AuthorID.Link)
+	require.Equal(t, author.ProfileImageUrl, AuthorID.ProfileImageUrl)
+	require.Equal(t, author.AdditionalInfo, AuthorID.AdditionalInfo)
 
 }
 
 func TestGetAuthorByName(t *testing.T) {
 	author := CreateRandomAuthor(t)
 
-	id, err := test.GetAuthorByName(context.Background(), author.NickName)
+	AuthorID, err := test.GetAuthorByName(context.Background(), author.NickName)
 	require.NoError(t, err)
 
-	require.NotEmpty(t, id)
-	require.Equal(t, author.NickName, id.NickName)
-	require.Equal(t, author.Email, id.Email)
-	require.Equal(t, author.PasswordHash, id.PasswordHash)
-	require.Equal(t, author.Payments, id.Payments)
-	require.ElementsMatch(t, author.Projects, id.Projects)
-	require.Equal(t, author.Bio, id.Bio)
-	require.Equal(t, author.Link, id.Link)
-	require.Equal(t, author.ProfileImageUrl, id.ProfileImageUrl)
-	require.ElementsMatch(t, author.AdditionalInfo, id.AdditionalInfo)
+	require.NotEmpty(t, AuthorID)
+	require.Equal(t, author.NickName, AuthorID.NickName)
+	require.Equal(t, author.Email, AuthorID.Email)
+	require.Equal(t, author.PasswordHash, AuthorID.PasswordHash)
+	require.Equal(t, author.Payments, AuthorID.Payments)
+	require.Equal(t, author.Bio, AuthorID.Bio)
+	require.Equal(t, author.Link, AuthorID.Link)
+	require.Equal(t, author.ProfileImageUrl, AuthorID.ProfileImageUrl)
+	require.Equal(t, author.AdditionalInfo, AuthorID.AdditionalInfo)
 
 }
 
-func TestListAuthorID(t *testing.T) {
+func TestListAuthorAuthorID(t *testing.T) {
 	var authors []Author
 
 	authors, err := test.ListAuthorID(context.Background())
@@ -127,4 +124,43 @@ func TestListAuthorName(t *testing.T) {
 		require.NotEmpty(t, a.Email)
 		require.NotEmpty(t, a.PasswordHash)
 	}
+}
+
+func TestUpdateAuthor(t *testing.T) {
+	author := CreateRandomAuthor(t)
+
+	arg := UpdateAuthorParams{
+		AuthorID:     author.AuthorID,
+		NickName:     util.RandomString(8),
+		Email:        util.RandomString(8) + "@gmail.com",
+		PasswordHash: util.RandomString(8),
+	}
+
+	a, err := test.UpdateAuthor(context.Background(), arg)
+	require.NoError(t, err)
+	require.NotEmpty(t, a.AuthorID)
+	require.NotEmpty(t, a.NickName)
+
+	require.NotEqual(t, author.NickName, a.NickName)
+}
+
+func TestUpdateAuthorFull(t *testing.T) {
+	author := CreateRandomAuthor(t)
+
+	arg := UpdateAuthorFullParams{
+		AuthorID:        author.AuthorID,
+		NickName:        util.RandomString(7),
+		Email:           util.RandomString(6) + "@gmail.com",
+		PasswordHash:    util.RandomString(10),
+		Payments:        util.RandomString(12),
+		Bio:             util.RandomString(6),
+		Link:            util.RandomString(4),
+		ProfileImageUrl: util.RandomString(6),
+	}
+
+	a, err := test.UpdateAuthorFull(context.Background(), arg)
+	require.NoError(t, err)
+
+	require.NotEqual(t, author.NickName, a.NickName)
+	require.Equal(t, a.AuthorID, a.AuthorID)
 }
